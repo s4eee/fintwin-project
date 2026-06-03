@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FinTwin — Calibration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0D1B2A;
+      --bg-dark:   #080F18;
+      --card:      #111F2E;
+      --border:    #1E3A50;
+      --teal:      #00C49A;
+      --white:     #FFFFFF;
+      --muted:     #7A9DB5;
+      --light:     #A0C4D8;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--white);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 460px;
+      background: var(--bg-dark);
+      border: 0.5px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+    }
+
+    .logo-area {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 26px;
+      color: var(--teal);
+      letter-spacing: -1px;
+    }
+
+    .form-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .form-sub {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .field input {
+      width: 100%;
+      background: var(--bg);
+      border: 0.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 14px;
+      color: var(--white);
+      outline: none;
+    }
+    .field input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(0,196,154,0.1);
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--teal);
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #0D1B2A;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="logo-area">
+      <div class="logo">FinTwin</div>
+    </div>
+    
+    <div class="form-title">Calibrate Your AI Twin</div>
+    <div class="form-sub">Provide your baseline financial numbers so your AI CFO can simulate decisions accurately.</div>
+
+    <div class="field">
+      <label for="income">Monthly Take-Home Income (₹)</label>
+      <input type="number" id="income" placeholder="e.g., 80000" />
+    </div>
+
+    <div class="field">
+      <label for="savings">Current Total Savings (₹)</label>
+      <input type="number" id="savings" placeholder="e.g., 250000" />
+    </div>
+
+    <button class="btn-primary" onclick="saveSetup()">Initialize AI Twin →</button>
+  </div>
+
+  <script>
+    async function saveSetup() {
+    const income = document.getElementById('income').value.trim();
+    const savings = document.getElementById('savings').value.trim();
+    const token = localStorage.getItem('fintwin_token');
+
+    if (!income || !savings) {
+      alert('Please fill out both parameters to calibrate your twin.');
+      return;
+    }
+
+    if (!token) {
+      window.location.href = 'index.html';
+      return;
+    }
+
+    try {
+      // Send data to backend API via fetch
+      const response = await fetch('http://localhost:5000/api/profile/setup', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ income, savings })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+
+      // Head safely to your dashboard 
+      window.location.href = 'dashboard.html';
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+  </script>
+</body>
+</html>
