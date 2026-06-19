@@ -401,17 +401,17 @@
   }
 
   try {
-    const response = await fetch('http://localhost:5000/api/auth/signup', {
-      method: 'POST',
+    const response = await fetch('http://127.0.0.1:5000/api/auth/signup', { ... });
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: `${first} ${last}`.trim(), email, password })
     });
     
     const data = await response.json();
     if (!response.ok) throw new Error(data.message);
-
-    alert('Account created securely on backend! Please sign in.');
-    window.location.href = 'index.html';
+localStorage.setItem('token', data.token);
+    alert('Account created successfully! Let\'s calibrate your AI Twin.');
+    window.location.href = 'setup.html';
+   
   } catch (error) {
     err.textContent = error.message;
     err.style.display = 'block';
@@ -419,10 +419,14 @@
 }
 // Capture enter-key event
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleSignUp();
+      if (e.key === 'Enter'){
+        e.preventDefault();
+        handleSignUp();
+      } 
     });
       
   </script>
-
+  <script src="js/main.js"></script>
 </body>
 </html>
+

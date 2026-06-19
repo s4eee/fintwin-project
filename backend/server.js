@@ -181,15 +181,18 @@ app.get('/api/simulations', authenticateToken, async (req, res) => {
 });
 
 // G. MONGODB EXPENSE INPUT ROUTER
+// G. MONGODB EXPENSE INPUT ROUTER
+// G. MONGODB EXPENSE INPUT ROUTER
 app.post('/api/expenses', authenticateToken, async (req, res) => {
   try {
     const { title, amount, category } = req.body;
     
-    // Fixed: Added verification step to check for missing category keys
+    // 1. Verification step
     if (!title || !amount || !category) {
-      return res.status(400).json({ message: 'Missing title, amount, or category parameter fields.' });
+      return res.status(400).json({ message: 'Missing title, amount, or category fields.' });
     }
 
+    // 2. Create and save the new Expense document
     const newExpense = new Expense({
       userId: req.user.userId, 
       title,
@@ -198,16 +201,17 @@ app.post('/api/expenses', authenticateToken, async (req, res) => {
     });
     await newExpense.save();
 
-    // Deduct total transaction volume directly out of user profile parameters balance
+    // 3. Update User savings (Deduct total transaction volume)
     await User.findByIdAndUpdate(req.user.userId, {
       $inc: { savings: -Number(amount) }
     });
 
     console.log(`💸 Expense Logged: ${title} (-₹${amount}) for User: ${req.user.userId}`);
     res.status(201).json({ message: 'Expense tracked in MongoDB safely.' });
+
   } catch (err) {
     console.error("❌ MongoDB Expense Error:", err.message);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Server error while committing ledger.' });
   }
 });
 
@@ -226,5 +230,5 @@ const PORT = 5000;
 const HOST = '127.0.0.1'; // Explicitly bind to IPv4
 
 app.listen(PORT, HOST, () => {
-  console.log(`🚀 FinTwin Backend running cleanly on http://${HOST}:${PORT}`);
+  console.log(`🚀Server running at http://${HOST}:5000 `);
 });
