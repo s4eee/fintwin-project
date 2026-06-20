@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FinTwin — Sign Up</title>
+  <title>FinTwin — Login</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
   <style>
@@ -21,7 +21,6 @@
       --muted:     #7A9DB5;
       --light:     #A0C4D8;
       --danger:    #FF6B6B;
-      --border-accent: rgba(0,196,154,0.26);
     }
 
     body {
@@ -32,7 +31,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
     }
 
     /* ── LAYOUT ───────────────────────────────────────── */
@@ -45,15 +43,6 @@
       border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 32px 80px rgba(0,0,0,0.5);
-    }
-
-    @media (max-width: 800px) {
-      .container {
-        grid-template-columns: 1fr;
-        width: 100%;
-        max-width: 450px;
-      }
-      .left { display: none; } /* Standard practice for compact side panels on mobile */
     }
 
     /* ── LEFT PANEL ───────────────────────────────────── */
@@ -81,73 +70,36 @@
       font-weight: 500;
     }
 
-    .left-middle {
-      margin: 32px 0;
-    }
+    .left-middle {}
     .left-headline {
-      font-size: 18px;
-      font-weight: 600;
-      line-height: 1.5;
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.4;
       color: var(--white);
-      margin-bottom: 20px;
-    }
-
-    /* Testimonial Card */
-    .testimonial {
-      background: var(--card);
-      border: 0.5px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 24px;
-    }
-    .testimonial-text {
-      font-size: 12px;
-      color: var(--light);
-      line-height: 1.6;
       margin-bottom: 12px;
     }
-    .testimonial-user {
+    .left-headline span { color: var(--teal); }
+
+    .left-body {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+
+    .features { display: flex; flex-direction: column; gap: 10px; }
+    .feature-item {
       display: flex;
       align-items: center;
       gap: 10px;
+      font-size: 13px;
+      color: var(--light);
     }
-    .avatar {
-      width: 28px;
-      height: 28px;
+    .feature-dot {
+      width: 7px; height: 7px;
       border-radius: 50%;
-      background: rgba(0,196,154,0.13);
-      border: 0.5px solid var(--teal);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      color: var(--teal);
-      font-weight: 600;
-    }
-    .user-name {
-      font-size: 11px;
-      color: var(--white);
-      font-weight: 500;
-    }
-    .user-title {
-      font-size: 10px;
-      color: var(--muted);
-    }
-
-    /* Stats Grid */
-    .stats-row {
-      display: flex;
-      gap: 24px;
-    }
-    .stat-box-num {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--teal);
-    }
-    .stat-box-lbl {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 2px;
+      background: var(--teal);
+      flex-shrink: 0;
     }
 
     .left-footer {
@@ -173,7 +125,7 @@
     .form-sub {
       font-size: 13px;
       color: var(--muted);
-      margin-bottom: 24px;
+      margin-bottom: 28px;
     }
 
     /* Google button */
@@ -191,7 +143,7 @@
       color: var(--light);
       cursor: pointer;
       transition: border-color 0.2s, background 0.2s;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
       text-decoration: none;
     }
     .btn-google:hover { border-color: var(--teal); background: var(--teal-dim); }
@@ -201,17 +153,12 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
     .divider-line { flex: 1; height: 0.5px; background: var(--border); }
     .divider-text { font-size: 11px; color: var(--border); white-space: nowrap; }
 
-    /* Form Fields */
-    .field-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
+    /* Form fields */
     .field { margin-bottom: 14px; }
     .field label {
       display: block;
@@ -233,18 +180,36 @@
       transition: border-color 0.2s, box-shadow 0.2s;
       outline: none;
     }
+    .field input::placeholder { color: var(--border); }
     .field input:focus {
       border-color: var(--teal);
       box-shadow: 0 0 0 3px rgba(0,196,154,0.1);
     }
-    .field input.filled-mockup {
-      border-color: var(--border-accent);
+
+    /* Password row */
+    .field-pw-wrap { position: relative; }
+    .field-pw-wrap input { padding-right: 50px; }
+    .pw-toggle {
+      position: absolute;
+      right: 14px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: var(--teal);
+      cursor: pointer;
+      font-weight: 600;
+      user-select: none;
     }
-    .field-hint {
-      font-size: 10px;
-      color: var(--border);
-      margin-top: 4px;
+
+    .forgot {
+      text-align: right;
+      font-size: 11px;
+      color: var(--teal);
+      cursor: pointer;
+      margin-top: -8px;
+      margin-bottom: 20px;
+      display: block;
     }
+    .forgot:hover { text-decoration: underline; }
 
     /* Primary button */
     .btn-primary {
@@ -260,7 +225,6 @@
       transition: opacity 0.2s, transform 0.1s;
       font-family: 'Inter', sans-serif;
       margin-bottom: 16px;
-      margin-top: 4px;
     }
     .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
     .btn-primary:active { transform: translateY(0); }
@@ -277,11 +241,11 @@
     }
     .form-footer a:hover { text-decoration: underline; }
 
-    /* Error Handling box */
+    /* Error message */
     .error-msg {
       font-size: 12px;
       color: var(--danger);
-      margin-bottom: 10px;
+      margin-top: 6px;
       display: none;
     }
   </style>
@@ -290,6 +254,7 @@
 
   <div class="container">
 
+    <!-- LEFT PANEL -->
     <div class="left">
       <div>
         <div class="logo">FinTwin</div>
@@ -298,34 +263,29 @@
 
       <div class="left-middle">
         <div class="left-headline">
-          Join thousands of Indians making smarter money decisions
+          "What if I buy<br>a <span>new phone?</span>"
         </div>
-        
-        <div class="testimonial">
-          <div class="testimonial-text">
-            "FinTwin told me buying an iPhone would delay my home goal by 8 months. I got it on EMI instead. Saved my dream."
-          </div>
-          <div class="testimonial-user">
-            <div class="avatar">RS</div>
-            <div>
-              <div class="user-name">Rahul S.</div>
-              <div class="user-title">Software Engineer, Pune</div>
-            </div>
-          </div>
+        <div class="left-body">
+          Ask your money, not your gut. FinTwin simulates
+          the real impact of every financial decision —
+          before you make it.
         </div>
-
-        <div class="stats-row">
-          <div>
-            <div class="stat-box-num">₹1B+</div>
-            <div class="stat-box-lbl">Assets tracked</div>
+        <div class="features">
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            What-if scenario simulator
           </div>
-          <div>
-            <div class="stat-box-num">50k+</div>
-            <div class="stat-box-lbl">Decisions simulated</div>
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            Live goal tracking
           </div>
-          <div>
-            <div class="stat-box-num">Free</div>
-            <div class="stat-box-lbl">To get started</div>
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            AI nudges before you overspend
+          </div>
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            Your personal CFO — free
           </div>
         </div>
       </div>
@@ -333,10 +293,12 @@
       <div class="left-footer">© 2026 FinTwin · Made in India 🇮🇳</div>
     </div>
 
+    <!-- RIGHT PANEL -->
     <div class="right">
-      <div class="form-title">Create your account</div>
-      <div class="form-sub">Free forever · No credit card needed</div>
+      <div class="form-title">Welcome back</div>
+      <div class="form-sub">Sign in to your FinTwin account</div>
 
+      <!-- Google -->
       <a href="#" class="btn-google">
         <svg width="16" height="16" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -344,26 +306,13 @@
           <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
         </svg>
-        Sign up with Google
+        Continue with Google
       </a>
 
       <div class="divider">
         <div class="divider-line"></div>
-        <div class="divider-text">or with email</div>
+        <div class="divider-text">or sign in with email</div>
         <div class="divider-line"></div>
-      </div>
-
-      <div class="error-msg" id="errorMsg"></div>
-
-      <div class="field-row">
-        <div class="field">
-          <label for="firstName">First name</label>
-          <input type="text" id="firstName" class="filled-mockup" placeholder="Arjun" value="Arjun"/>
-        </div>
-        <div class="field">
-          <label for="lastName">Last name</label>
-          <input type="text" id="lastName" placeholder="Sharma"/>
-        </div>
       </div>
 
       <div class="field">
@@ -372,88 +321,73 @@
       </div>
 
       <div class="field">
-        <label for="password">Create password</label>
-        <input type="password" id="password" placeholder="••••••••"/>
-        <div class="field-hint">Min 8 characters</div>
+        <label for="password">Password</label>
+        <div class="field-pw-wrap">
+          <input type="password" id="password" placeholder="Enter your password"/>
+          <span class="pw-toggle" id="pwToggle" onclick="togglePw()">show</span>
+        </div>
+        <div class="error-msg" id="errorMsg">Incorrect email or password.</div>
       </div>
 
-      <button class="btn-primary" onclick="handleSignUp()">Create my FinTwin →</button>
+      <a href="#" class="forgot">Forgot password?</a>
+
+      <button class="btn-primary" onclick="handleLogin()">Sign in →</button>
 
       <div class="form-footer">
-        Already have an account? <a href="index.html">Sign in</a>
+        Don't have an account? <a href="signup.html">Create one free</a>
       </div>
     </div>
 
   </div>
 
- 
   <script>
-  async function handleSignUp() {
-    // 1. Get values from the input fields
-    const firstName = document.getElementById('firstName').value.trim();
-    const lastName = document.getElementById('lastName').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    const err = document.getElementById('errorMsg');
-
-    // 2. Simple validation
-    if (!firstName || !email || !password) {
-      err.textContent = 'Please fill out all fields.';
-      err.style.display = 'block';
-      return;
+    function togglePw() {
+      const input = document.getElementById('password');
+      const toggle = document.getElementById('pwToggle');
+      if (input.type === 'password') {
+        input.type = 'text';
+        toggle.textContent = 'hide';
+      } else {
+        input.type = 'password';
+        toggle.textContent = 'show';
+      }
     }
 
-    // 3. Prepare data
-    const fullName = `${firstName} ${lastName}`;
+    function handleLogin() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const err = document.getElementById('errorMsg');
 
-    try {
-      console.log("Attempting to fetch with data:", { name: fullName, email });
-
-      const response = await fetch('http://127.0.0.1:5000/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: fullName,
-          email: email,
-          password: password
-        })
-      });
-      
-      const data = await response.json();
-      console.log("Check this object structure:", data);
-      console.log("DEBUG: Data received in signup:", data); 
-
-if (data.token) {
-    localStorage.setItem('fintwin_token', data.token);
-    console.log("SUCCESS: Token saved to localStorage");
-} else {
-    console.error("FAILURE: 'token' key missing from server response!");
-}
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Signup failed');
+      // Basic validation
+      if (!email || !password) {
+        err.textContent = 'Please fill in all fields.';
+        err.style.display = 'block';
+        return;
       }
 
-      // Success
-      localStorage.setItem('fintwin_token', data.token);
-      alert('Account created successfully! Let\'s calibrate your AI Twin.');
-      window.location.href = 'setup.html';
-      
-    } catch (error) {
-      console.error('Fetch error:', error);
-      err.textContent = error.message;
-      err.style.display = 'block';
-    }
-  }
+      // Check if user exists in localStorage (from signup)
+      const savedUser = JSON.parse(localStorage.getItem('fintwin_user') || '{}');
+      const hasProfile = localStorage.getItem('fintwin_profile');
 
-  // Capture enter-key event
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSignUp();
-    } 
-  });
-</script>
+      if (savedUser.email === email && savedUser.password === password) {
+        err.style.display = 'none';
+        // If they've done setup, go to dashboard. Otherwise setup.
+        if (hasProfile) {
+          window.location.href = 'dashboard.html';
+        } else {
+          window.location.href = 'setup.html';
+        }
+      } else {
+        err.textContent = 'Incorrect email or password.';
+        err.style.display = 'block';
+      }
+    }
+
+    // Allow pressing Enter to submit
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleLogin();
+    });
+  </script>
+
 </body>
 </html>
-

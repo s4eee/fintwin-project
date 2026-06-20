@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FinTwin — Dashboard</title>
+  <style>
+     /* Reuse your main styles, add specific dashboard layout here */
+     .dashboard-container { padding: 40px; max-width: 1000px; margin: auto; }
+     .grid-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+     .card { background: var(--card); padding: 20px; border-radius: 12px; border: 0.5px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+  <nav style="display:flex; justify-content:space-between; margin-bottom: 20px;">
+    <div class="logo">FinTwin</div>
+    <button onclick="logout()" class="btn-primary" style="width: auto;">Logout</button>
+  </nav>
+
+  <div class="grid-layout">
+    <div class="card">
+        <h3>Active Model Parameters</h3>
+        <p>Savings: <span id="savings-val">₹0</span></p>
+        <p>Cashflow: <span id="cashflow-val">₹0</span></p>
+    </div>
+    <div class="card">
+        <h3>Strategic Decision Simulator</h3>
+        </div>
+  </div>
+</div>
+
+<script>
+  // 1. AUTHENTICATION CHECK
+  const token = localStorage.getItem('fintwin_token');
+  if (!token) {
+    window.location.href = 'index.html';
+  }
+
+  // 2. FETCH DATA FROM SERVER
+  async function loadDashboardData() {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/api/profile', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      
+      // Update the UI
+      document.getElementById('savings-val').textContent = `₹${data.savings}`;
+      document.getElementById('cashflow-val').textContent = `₹${data.monthlyIncome}`;
+    } catch (err) {
+      console.error("Failed to load profile:", err);
+    }
+  }
+
+  // 3. LOGOUT FUNCTION
+  function logout() {
+    localStorage.removeItem('fintwin_token');
+    window.location.href = 'index.html';
+  }
+
+  // Initialize
+  loadDashboardData();
+</script>
+
+</body>
+</html>

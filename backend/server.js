@@ -6,6 +6,12 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const app = express();
+app.use(express.static(path.join(__dirname))); 
+
+// Route to load the main page
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 app.use(express.json());
 
 // Explicitly permit the incoming traffic from Live Server port 5500
@@ -102,7 +108,6 @@ app.post('/api/auth/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
     
-    // Log the user data to see if the frontend sent it correctly
     console.log("--- 2. Data received:", { name, email });
 
     const existing = await User.findOne({ email });
@@ -113,16 +118,20 @@ app.post('/api/auth/signup', async (req, res) => {
     
     console.log("--- 3. Attempting to save to MongoDB ---");
     await newUser.save();
+
+    // 1. GENERATE THE TOKEN HERE
+    const token = jwt.sign({ userId: newUser._id }, JWT_SECRET, { expiresIn: '24h' });
     
     console.log("--- 4. SUCCESS: Data saved! ---");
-    res.status(201).json({ message: 'Signup complete!' });
+    
+    // 2. SEND THE TOKEN IN THE RESPONSE
+    res.status(201).json({ message: 'Signup complete!', token: token });
     
   } catch (err) { 
     console.error("--- 5. ERROR in Signup route:", err.message); 
     res.status(500).json({ message: err.message }); 
   }
 });
-
 // B. USER AUTHENTICATION ROUTE (LOGIN)
 app.post('/api/auth/login', async (req, res) => {
   try {
@@ -175,7 +184,9 @@ app.post('/api/simulations', authenticateToken, async (req, res) => {
     const { item, cost, type, monthlyCommitment, status } = req.body;
     const log = new Simulation({ userId: req.user.userId, item, cost, type, monthlyCommitment, status });
     await log.save();
-    res.status(201).json(log);
+   
+    res.status(201).json({ message: 'Signup complete!', token: token });
+console.log("DEBUG: Token sent to client:", token);
   } catch (err) { 
     res.status(500).json({ message: 'Failed to record sandbox query log.' }); 
   }
