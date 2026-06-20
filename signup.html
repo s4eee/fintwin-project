@@ -386,47 +386,65 @@
 
   </div>
 
+ 
   <script>
-    async function handleSignUp() {
-  const first = document.getElementById('firstName').value.trim();
-  const last = document.getElementById('lastName').value.trim();
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const err = document.getElementById('errorMsg');
+  async function handleSignUp() {
+    // 1. Get values from the input fields
+    const firstName = document.getElementById('firstName').value.trim();
+    const lastName = document.getElementById('lastName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const err = document.getElementById('errorMsg');
 
-  if (!first || !email || !password) {
-    err.textContent = 'Please fill out all fields.';
-    err.style.display = 'block';
-    return;
-  }
+    // 2. Simple validation
+    if (!firstName || !email || !password) {
+      err.textContent = 'Please fill out all fields.';
+      err.style.display = 'block';
+      return;
+    }
 
-  try {
-    const response = await fetch('http://127.0.0.1:5000/api/auth/signup', { ... });
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: `${first} ${last}`.trim(), email, password })
-    });
-    
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message);
-localStorage.setItem('token', data.token);
-    alert('Account created successfully! Let\'s calibrate your AI Twin.');
-    window.location.href = 'setup.html';
-   
-  } catch (error) {
-    err.textContent = error.message;
-    err.style.display = 'block';
-  }
-}
-// Capture enter-key event
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter'){
-        e.preventDefault();
-        handleSignUp();
-      } 
-    });
+    // 3. Prepare data
+    const fullName = `${firstName} ${lastName}`;
+
+    try {
+      console.log("Attempting to fetch with data:", { name: fullName, email });
+
+      const response = await fetch('http://127.0.0.1:5000/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: fullName,
+          email: email,
+          password: password
+        })
+      });
       
-  </script>
-  <script src="js/main.js"></script>
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Signup failed');
+      }
+
+      // Success
+      localStorage.setItem('fintwin_token', data.token);
+      alert('Account created successfully! Let\'s calibrate your AI Twin.');
+      window.location.href = 'setup.html';
+      
+    } catch (error) {
+      console.error('Fetch error:', error);
+      err.textContent = error.message;
+      err.style.display = 'block';
+    }
+  }
+
+  // Capture enter-key event
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSignUp();
+    } 
+  });
+</script>
 </body>
 </html>
 

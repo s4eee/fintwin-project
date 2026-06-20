@@ -10,14 +10,14 @@ app.use(express.json());
 
 // Explicitly permit the incoming traffic from Live Server port 5500
 app.use(cors({
-  origin: 'http://127.0.0.1:5500',
+  origin: '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Force fallback to standard local string with connection parameters
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/fintwin';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/fintwin';
 // Fixed: Using a clear global variable string to prevent scoping lookup errors
 const JWT_SECRET = process.env.JWT_SECRET || 'fintwin_secret_super_key';
 
@@ -92,22 +92,33 @@ const authenticateToken = (req, res, next) => {
 
 /* ─── 3. ALL REQUIRED POST & GET ENDPOINTS ─── */
 
+
 // A. USER AUTHENTICATION ROUTE (SIGNUP)
+// Make sure you have this installed
+
 app.post('/api/auth/signup', async (req, res) => {
+  console.log("--- 1. Signup request reached server ---");
+  
   try {
     const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Please fill out all required fields.' });
-    }
+    
+    // Log the user data to see if the frontend sent it correctly
+    console.log("--- 2. Data received:", { name, email });
 
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: 'User already exists.' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({ name, email, password: hashedPassword });
+    
+    console.log("--- 3. Attempting to save to MongoDB ---");
     await newUser.save();
+    
+    console.log("--- 4. SUCCESS: Data saved! ---");
     res.status(201).json({ message: 'Signup complete!' });
+    
   } catch (err) { 
+    console.error("--- 5. ERROR in Signup route:", err.message); 
     res.status(500).json({ message: err.message }); 
   }
 });
@@ -207,7 +218,7 @@ app.post('/api/expenses', authenticateToken, async (req, res) => {
     });
 
     console.log(`💸 Expense Logged: ${title} (-₹${amount}) for User: ${req.user.userId}`);
-    res.status(201).json({ message: 'Expense tracked in MongoDB safely.' });
+    res.status(200).json({ message: 'Expense tracked in MongoDB safely.' });
 
   } catch (err) {
     console.error("❌ MongoDB Expense Error:", err.message);
