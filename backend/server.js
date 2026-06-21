@@ -3,15 +3,11 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const path = require('path'); // FIX: this was missing, which crashed the server on startup
 require('dotenv').config();
 
 const app = express();
-app.use(express.static(path.join(__dirname))); 
 
-// Route to load the main page
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
 app.use(express.json());
 
 // Explicitly permit the incoming traffic from Live Server port 5500
@@ -21,6 +17,13 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+app.use(express.static(path.join(__dirname)));
+
+// Route to load the main page
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // Force fallback to standard local string with connection parameters
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/fintwin';
@@ -77,16 +80,13 @@ const Expense = mongoose.model('Expense', ExpenseSchema);
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  
+
   if (!token) {
     console.log("⚠️ Auth Blocked: Request missing token header.");
     return res.status(401).json({ message: 'Access denied. Missing token.' });
   }
 
-  // Explicit fallback string matching line 14 exactly
-  const secretKey = process.env.JWT_SECRET || 'fintwin_secret_super_key';
-
-  jwt.verify(token, secretKey, (err, user) => {
+  jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
       console.log("⚠️ Auth Blocked: Token verification failed or expired.");
       return res.status(403).json({ message: 'Session expired. Please log in again.' });
@@ -98,16 +98,13 @@ const authenticateToken = (req, res, next) => {
 
 /* ─── 3. ALL REQUIRED POST & GET ENDPOINTS ─── */
 
-
 // A. USER AUTHENTICATION ROUTE (SIGNUP)
-// Make sure you have this installed
-
 app.post('/api/auth/signup', async (req, res) => {
   console.log("--- 1. Signup request reached server ---");
-  
+
   try {
     const { name, email, password } = req.body;
-    
+
     console.log("--- 2. Data received:", { name, email });
 
     const existing = await User.findOne({ email });
@@ -115,38 +112,41 @@ app.post('/api/auth/signup', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({ name, email, password: hashedPassword });
-    
+
     console.log("--- 3. Attempting to save to MongoDB ---");
     await newUser.save();
 
-    // 1. GENERATE THE TOKEN HERE
     const token = jwt.sign({ userId: newUser._id }, JWT_SECRET, { expiresIn: '24h' });
-    
+
     console.log("--- 4. SUCCESS: Data saved! ---");
-    
-    // 2. SEND THE TOKEN IN THE RESPONSE
-    res.status(201).json({ message: 'Signup complete!', token: token });
-    
-  } catch (err) { 
-    console.error("--- 5. ERROR in Signup route:", err.message); 
-    res.status(500).json({ message: err.message }); 
+
+    res.status(201).json({
+      message: 'Signup complete!',
+      token: token,
+      hasConfiguredProfile: newUser.hasConfiguredProfile
+    });
+
+  } catch (err) {
+    console.error("--- 5. ERROR in Signup route:", err.message);
+    res.status(500).json({ message: err.message });
   }
 });
+
 // B. USER AUTHENTICATION ROUTE (LOGIN)
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     console.log(`✉️ Login attempt received for: ${email}`);
-    
+
     const user = await User.findOne({ email });
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(400).json({ message: 'Incorrect email or password.' });
     }
-    
+
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '24h' });
     res.json({ token, hasConfiguredProfile: user.hasConfiguredProfile });
-  } catch (err) { 
-    res.status(500).json({ message: 'Server login error.' }); 
+  } catch (err) {
+    res.status(500).json({ message: 'Server login error.' });
   }
 });
 
@@ -155,8 +155,8 @@ app.get('/api/profile', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');
     res.json(user);
-  } catch (err) { 
-    res.status(500).json({ message: 'Failed to fetch profile context.' }); 
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch profile context.' });
   }
 });
 
@@ -164,7 +164,7 @@ app.get('/api/profile', authenticateToken, async (req, res) => {
 app.post('/api/profile/setup', authenticateToken, async (req, res) => {
   try {
     const { name, income, savings, phone } = req.body;
-    
+
     const updateData = { hasConfiguredProfile: true };
     if (name) updateData.name = name;
     if (phone !== undefined) updateData.phone = phone;
@@ -173,8 +173,8 @@ app.post('/api/profile/setup', authenticateToken, async (req, res) => {
 
     await User.findByIdAndUpdate(req.user.userId, updateData);
     res.json({ message: 'Twin configurations successfully updated!' });
-  } catch (err) { 
-    res.status(500).json({ message: 'Update failed.' }); 
+  } catch (err) {
+    res.status(500).json({ message: 'Update failed.' });
   }
 });
 
@@ -184,11 +184,12 @@ app.post('/api/simulations', authenticateToken, async (req, res) => {
     const { item, cost, type, monthlyCommitment, status } = req.body;
     const log = new Simulation({ userId: req.user.userId, item, cost, type, monthlyCommitment, status });
     await log.save();
-   
-    res.status(201).json({ message: 'Signup complete!', token: token });
-console.log("DEBUG: Token sent to client:", token);
-  } catch (err) { 
-    res.status(500).json({ message: 'Failed to record sandbox query log.' }); 
+
+    // FIX: this used to reference an undefined `token` variable and copy-pasted
+    // the signup success message. A simulation log has nothing to do with auth tokens.
+    res.status(201).json({ message: 'Simulation logged successfully!' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to record sandbox query log.' });
   }
 });
 
@@ -197,33 +198,29 @@ app.get('/api/simulations', authenticateToken, async (req, res) => {
   try {
     const history = await Simulation.find({ userId: req.user.userId }).sort({ timestamp: -1 }).limit(10);
     res.json(history);
-  } catch (err) { 
-    res.status(500).json({ message: 'Failed to gather history logs.' }); 
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to gather history logs.' });
   }
 });
 
 // G. MONGODB EXPENSE INPUT ROUTER
-// G. MONGODB EXPENSE INPUT ROUTER
-// G. MONGODB EXPENSE INPUT ROUTER
 app.post('/api/expenses', authenticateToken, async (req, res) => {
   try {
     const { title, amount, category } = req.body;
-    
-    // 1. Verification step
+
     if (!title || !amount || !category) {
       return res.status(400).json({ message: 'Missing title, amount, or category fields.' });
     }
 
-    // 2. Create and save the new Expense document
     const newExpense = new Expense({
-      userId: req.user.userId, 
+      userId: req.user.userId,
       title,
       amount: Number(amount),
       category
     });
     await newExpense.save();
 
-    // 3. Update User savings (Deduct total transaction volume)
+    // Update User savings (Deduct total transaction volume)
     await User.findByIdAndUpdate(req.user.userId, {
       $inc: { savings: -Number(amount) }
     });
@@ -237,7 +234,7 @@ app.post('/api/expenses', authenticateToken, async (req, res) => {
   }
 });
 
-// H. GET ALL TRACKED EXPENSES STREAM 
+// H. GET ALL TRACKED EXPENSES STREAM
 app.get('/api/expenses', authenticateToken, async (req, res) => {
   try {
     const records = await Expense.find({ userId: req.user.userId }).sort({ date: -1 });
@@ -252,5 +249,5 @@ const PORT = 5000;
 const HOST = '127.0.0.1'; // Explicitly bind to IPv4
 
 app.listen(PORT, HOST, () => {
-  console.log(`🚀Server running at http://${HOST}:5000 `);
+  console.log(`🚀 Server running at http://${HOST}:${PORT}`);
 });

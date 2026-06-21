@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FinTwin — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0D1B2A; --bg-dark: #080F18; --card: #111F2E; --border: #1E3A50;
+      --teal: #00C49A; --white: #FFFFFF; --muted: #7A9DB5; --light: #A0C4D8; --danger: #FF6B6B;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--white); }
+    .logo { font-family: 'Space Grotesk', sans-serif; font-size: 24px; color: var(--teal); }
+
+    .dashboard-container { padding: 40px; max-width: 1000px; margin: auto; }
+    .grid-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+    .card { background: var(--card); padding: 20px; border-radius: 12px; border: 0.5px solid var(--border); }
+    .card h3 { font-size: 14px; color: var(--teal); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px; }
+    .card p { font-size: 14px; color: var(--light); margin-bottom: 8px; }
+    .card p span { color: var(--white); font-weight: 700; }
+
+    .btn-primary {
+      background: var(--teal); border: none; border-radius: 8px; padding: 10px 18px;
+      font-size: 13px; font-weight: 700; color: #0D1B2A; cursor: pointer;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .nav-links a { color: var(--light); text-decoration: none; font-size: 14px; margin-left: 16px; }
+    .nav-links a:hover { color: var(--teal); }
+
+    @media (max-width: 768px) { .grid-layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+  <nav style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+    <div class="logo">FinTwin</div>
+    <div style="display:flex; align-items:center;">
+      <span class="nav-links"><a href="profile.html">My Account Profile</a></span>
+      <button onclick="logout()" class="btn-primary" style="margin-left: 16px;">Logout</button>
+    </div>
+  </nav>
+
+  <div class="grid-layout">
+    <div class="card">
+        <h3>Active Model Parameters</h3>
+        <p>Savings: <span id="savings-val">₹0</span></p>
+        <p>Monthly Income: <span id="cashflow-val">₹0</span></p>
+    </div>
+    <div class="card">
+        <h3>Strategic Decision Simulator</h3>
+        <p style="color: var(--muted);">Coming soon — simulate a purchase to see its impact on your goals.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = 'http://127.0.0.1:5000/api';
+  const token = localStorage.getItem('fintwin_token');
+
+  // 1. AUTHENTICATION CHECK
+  if (!token || token === 'undefined') {
+    window.location.href = 'index.html';
+  }
+
+  // 2. FETCH DATA FROM SERVER
+  async function loadDashboardData() {
+    try {
+      const response = await fetch(`${API_BASE}/profile`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        // Token missing or expired — send back to login instead of failing silently
+        localStorage.removeItem('fintwin_token');
+        window.location.href = 'index.html';
+        return;
+      }
+
+      const data = await response.json();
+
+      document.getElementById('savings-val').textContent = `₹${Number(data.savings || 0).toLocaleString('en-IN')}`;
+      document.getElementById('cashflow-val').textContent = `₹${Number(data.income || 0).toLocaleString('en-IN')}`;
+    } catch (err) {
+      console.error("Failed to load profile:", err);
+      alert("Network error: Can't reach the backend at port 5000. Make sure 'node server.js' is running.");
+    }
+  }
+
+  // 3. LOGOUT FUNCTION
+  function logout() {
+    localStorage.removeItem('fintwin_token');
+    window.location.href = 'index.html';
+  }
+
+  // Initialize
+  loadDashboardData();
+</script>
+
+</body>
+</html>
