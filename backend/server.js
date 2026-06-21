@@ -4,9 +4,14 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path'); // FIX: this was missing, which crashed the server on startup
+const { OAuth2Client } = require('google-auth-library');
 require('dotenv').config();
 
 const app = express();
+
+// Your Google OAuth Web Client ID from Google Cloud Console
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '1013090813049-repush2ki1rp2t8e9kv61709iipcm5s8.apps.googleusercontent.com';
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 app.use(express.json());
 
@@ -46,7 +51,8 @@ mongoose.connect(MONGO_URI, {
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+  password: { type: String }, // Optional now — Google sign-in users won't have a local password
+  googleId: { type: String, default: null }, // Set only for accounts created/linked via Google
   income: { type: Number, default: 0 },
   savings: { type: Number, default: 0 },
   hasConfiguredProfile: { type: Boolean, default: false },
@@ -74,24 +80,6 @@ const ExpenseSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now }
 });
 const Expense = mongoose.model('Expense', ExpenseSchema);
-
-const ActivitySchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  type: { type: String, required: true }, // 'signup' | 'login' | 'expense' | 'simulation' | 'profile_update'
-  description: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now }
-});
-const Activity = mongoose.model('Activity', ActivitySchema);
-
-// Helper: fire-and-forget activity logging. Never throws into the calling route —
-// a failed activity log should never break the actual feature (signup, login, etc).
-async function logActivity(userId, type, description) {
-  try {
-    await Activity.create({ userId, type, description });
-  } catch (err) {
-    console.error('⚠️ Failed to log activity:', err.message);
-  }
-}
 
 /* ─── 2. SECURITY MIDDLEWARE ─── */
 
@@ -138,8 +126,6 @@ app.post('/api/auth/signup', async (req, res) => {
 
     console.log("--- 4. SUCCESS: Data saved! ---");
 
-    await logActivity(newUser._id, 'signup', `Account created for ${name}`);
-
     res.status(201).json({
       message: 'Signup complete!',
       token: token,
@@ -159,15 +145,55 @@ app.post('/api/auth/login', async (req, res) => {
     console.log(`✉️ Login attempt received for: ${email}`);
 
     const user = await User.findOne({ email });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
       return res.status(400).json({ message: 'Incorrect email or password.' });
     }
 
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '24h' });
-    await logActivity(user._id, 'login', 'Signed in to FinTwin');
     res.json({ token, hasConfiguredProfile: user.hasConfiguredProfile });
   } catch (err) {
     res.status(500).json({ message: 'Server login error.' });
+  }
+});
+
+// B2. GOOGLE SIGN-IN ROUTE — verifies the ID token Google sent to the browser,
+// then either logs in an existing user or creates a new one automatically.
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ message: 'Missing Google credential.' });
+    }
+
+    // Verify the token is genuinely from Google and intended for this app
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name } = payload;
+
+    console.log(`🔑 Google Sign-In verified for: ${email}`);
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // First time seeing this email — create a new account, no password needed
+      user = new User({ name: name || email.split('@')[0], email, googleId });
+      await user.save();
+      console.log(`✅ New user created via Google Sign-In: ${email}`);
+    } else if (!user.googleId) {
+      // Existing email/password account signing in with Google for the first time — link it
+      user.googleId = googleId;
+      await user.save();
+    }
+
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '24h' });
+    res.json({ token, hasConfiguredProfile: user.hasConfiguredProfile });
+
+  } catch (err) {
+    console.error('❌ Google Sign-In verification failed:', err.message);
+    res.status(401).json({ message: 'Google Sign-In failed. Please try again.' });
   }
 });
 
@@ -193,7 +219,6 @@ app.post('/api/profile/setup', authenticateToken, async (req, res) => {
     if (savings !== undefined) updateData.savings = Number(savings);
 
     await User.findByIdAndUpdate(req.user.userId, updateData);
-    await logActivity(req.user.userId, 'profile_update', 'Updated baseline financial parameters');
     res.json({ message: 'Twin configurations successfully updated!' });
   } catch (err) {
     res.status(500).json({ message: 'Update failed.' });
@@ -207,10 +232,6 @@ app.post('/api/simulations', authenticateToken, async (req, res) => {
     const log = new Simulation({ userId: req.user.userId, item, cost, type, monthlyCommitment, status });
     await log.save();
 
-    await logActivity(req.user.userId, 'simulation', `Simulated buying "${item}" (₹${cost}) as ${type}`);
-
-    // FIX: this used to reference an undefined `token` variable and copy-pasted
-    // the signup success message. A simulation log has nothing to do with auth tokens.
     res.status(201).json({ message: 'Simulation logged successfully!' });
   } catch (err) {
     res.status(500).json({ message: 'Failed to record sandbox query log.' });
@@ -250,7 +271,6 @@ app.post('/api/expenses', authenticateToken, async (req, res) => {
     });
 
     console.log(`💸 Expense Logged: ${title} (-₹${amount}) for User: ${req.user.userId}`);
-    await logActivity(req.user.userId, 'expense', `Added expense "${title}" (₹${amount}, ${category})`);
     res.status(200).json({ message: 'Expense tracked in MongoDB safely.' });
 
   } catch (err) {
@@ -266,16 +286,6 @@ app.get('/api/expenses', authenticateToken, async (req, res) => {
     res.json(records);
   } catch (err) {
     res.status(500).json({ message: 'Failed to extract expense tracking data arrays.' });
-  }
-});
-
-// I. GET RECENT ACTIVITY FEED
-app.get('/api/activities', authenticateToken, async (req, res) => {
-  try {
-    const records = await Activity.find({ userId: req.user.userId }).sort({ timestamp: -1 }).limit(20);
-    res.json(records);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch activity feed.' });
   }
 });
 
