@@ -64,7 +64,6 @@
     <div class="sidebar">
       <div class="menu-item active" onclick="switchViewTab('details', this)">View Profile Details</div>
       <div class="menu-item" onclick="switchViewTab('recents', this)">Recent Activities</div>
-      <div class="menu-item" onclick="switchViewTab('privacy', this)">Security & Privacy</div>
     </div>
 
     <div class="content-viewport">
@@ -94,7 +93,7 @@
           <div class="data-box"><label>Monthly Incoming Income (₹)</label><input type="number" id="settIncome" /></div>
           <div class="data-box"><label>Current Financial Savings Base (₹)</label><input type="number" id="settSavings" /></div>
         </div>
-        <button class="btn-save" onclick="saveProfileChanges()">Commit Ledger Changes</button>
+        <button class="btn-save" onclick="saveProfileChanges()">Update Income & Savings</button>
 
         <div class="section-title">Active Real-World Expense Profile</div>
         
@@ -126,10 +125,10 @@
       </div>
 
       <div id="tab-recents" class="tab-view">
-        <h2>Recent Ecosystem Events Log</h2>
-      </div>
-      <div id="tab-privacy" class="tab-view">
-        <h2>Security & Privacy Parameters</h2>
+        <h2 style="font-size:20px; margin-bottom:20px;">Recent Activities</h2>
+        <div class="expense-log-panel" id="decisionsContainer" style="max-height: 320px;">
+          <div style="text-align:center; color:var(--muted); font-size:12px; padding:20px;">Loading...</div>
+        </div>
       </div>
     </div>
   </div>
@@ -138,11 +137,17 @@
   <script>
     
     const API_URL = 'http://127.0.0.1:5000/api';
+    let decisionsLoaded = false;
+
     function switchViewTab(tabId, menuElement) {
       document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
       document.getElementById(`tab-${tabId}`).classList.add('active');
       menuElement.classList.add('active');
+
+      if (tabId === 'recents' && !decisionsLoaded) {
+        loadRecentDecisions();
+      }
     }
 
     // COMPLETE FIX: Rewritten add handler targeting port 5000
@@ -295,11 +300,90 @@
           return;
         }
 
-        if (res.ok) alert("Ledger settings saved!");
+        if (res.ok) alert("Income & savings updated!");
       } catch (err) {
         console.error(err);
         alert("Network error: Can't reach the backend at port 5000.");
       }
+    }
+
+    // ── RECENT DECISIONS (Cash/EMI choices made on the dashboard simulator) ──
+    async function loadRecentDecisions() {
+      const container = document.getElementById('decisionsContainer');
+      const token = localStorage.getItem('fintwin_token');
+      if (!token) return;
+
+      try {
+        const response = await fetch(`${API_URL}/simulations`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          alert("Session expired. Please log in again.");
+          localStorage.removeItem('fintwin_token');
+          window.location.href = 'index.html';
+          return;
+        }
+
+        const decisions = await response.json();
+        decisionsLoaded = true;
+
+        if (!response.ok || decisions.length === 0) {
+          container.innerHTML = `<div style="text-align:center; color:var(--muted); font-size:12px; padding:20px;">No decisions logged yet. Run a simulation on your dashboard and log it as Cash or EMI to see it here.</div>`;
+          return;
+        }
+
+        container.innerHTML = decisions.map(d => {
+          const date = new Date(d.timestamp);
+          const dateStr = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+          const isEmi = d.type === 'EMI';
+          const detail = isEmi
+            ? `EMI · ₹${Number(d.monthlyCommitment).toLocaleString('en-IN')}/mo`
+            : `Cash`;
+          return `
+            <div class="expense-row">
+              <div>
+                <span style="font-weight: 600; color: var(--white); text-transform: capitalize;">${d.item}</span>
+                <span class="exp-cat-badge" style="${isEmi ? 'background: rgba(255,107,107,0.15); color: var(--danger);' : ''}">${detail}</span>
+              </div>
+              <div style="text-align: right;">
+                <div style="color: var(--white); font-weight: 700;">₹${Number(d.cost).toLocaleString('en-IN')}</div>
+                <div style="color: var(--muted); font-size: 11px;">${dateStr}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Failed to load decisions:', err);
+        container.innerHTML = `<div style="text-align:center; color:var(--danger); font-size:12px; padding:20px;">Network error: Can't reach the backend at port 5000.</div>`;
+      }
+    }
+
+    // ── PROFILE PHOTO UPLOAD (local preview only — not saved to the server) ──
+    function processAvatarUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        alert('Please choose an image file.');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Please choose an image under 5MB.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const frame = document.getElementById('avatarFrame');
+        frame.innerHTML = `<img src="${e.target.result}" alt="Profile photo"/>`;
+      };
+      reader.onerror = () => {
+        alert('Could not read that file. Please try a different image.');
+      };
+      reader.readAsDataURL(file);
+
+      // Note: preview only, local to this page session. Refreshing resets it to initials.
     }
 
     window.onload = loadAccountData;

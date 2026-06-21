@@ -75,6 +75,24 @@ const ExpenseSchema = new mongoose.Schema({
 });
 const Expense = mongoose.model('Expense', ExpenseSchema);
 
+const ActivitySchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  type: { type: String, required: true }, // 'signup' | 'login' | 'expense' | 'simulation' | 'profile_update'
+  description: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now }
+});
+const Activity = mongoose.model('Activity', ActivitySchema);
+
+// Helper: fire-and-forget activity logging. Never throws into the calling route —
+// a failed activity log should never break the actual feature (signup, login, etc).
+async function logActivity(userId, type, description) {
+  try {
+    await Activity.create({ userId, type, description });
+  } catch (err) {
+    console.error('⚠️ Failed to log activity:', err.message);
+  }
+}
+
 /* ─── 2. SECURITY MIDDLEWARE ─── */
 
 const authenticateToken = (req, res, next) => {
@@ -120,6 +138,8 @@ app.post('/api/auth/signup', async (req, res) => {
 
     console.log("--- 4. SUCCESS: Data saved! ---");
 
+    await logActivity(newUser._id, 'signup', `Account created for ${name}`);
+
     res.status(201).json({
       message: 'Signup complete!',
       token: token,
@@ -144,6 +164,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '24h' });
+    await logActivity(user._id, 'login', 'Signed in to FinTwin');
     res.json({ token, hasConfiguredProfile: user.hasConfiguredProfile });
   } catch (err) {
     res.status(500).json({ message: 'Server login error.' });
@@ -172,6 +193,7 @@ app.post('/api/profile/setup', authenticateToken, async (req, res) => {
     if (savings !== undefined) updateData.savings = Number(savings);
 
     await User.findByIdAndUpdate(req.user.userId, updateData);
+    await logActivity(req.user.userId, 'profile_update', 'Updated baseline financial parameters');
     res.json({ message: 'Twin configurations successfully updated!' });
   } catch (err) {
     res.status(500).json({ message: 'Update failed.' });
@@ -184,6 +206,8 @@ app.post('/api/simulations', authenticateToken, async (req, res) => {
     const { item, cost, type, monthlyCommitment, status } = req.body;
     const log = new Simulation({ userId: req.user.userId, item, cost, type, monthlyCommitment, status });
     await log.save();
+
+    await logActivity(req.user.userId, 'simulation', `Simulated buying "${item}" (₹${cost}) as ${type}`);
 
     // FIX: this used to reference an undefined `token` variable and copy-pasted
     // the signup success message. A simulation log has nothing to do with auth tokens.
@@ -226,6 +250,7 @@ app.post('/api/expenses', authenticateToken, async (req, res) => {
     });
 
     console.log(`💸 Expense Logged: ${title} (-₹${amount}) for User: ${req.user.userId}`);
+    await logActivity(req.user.userId, 'expense', `Added expense "${title}" (₹${amount}, ${category})`);
     res.status(200).json({ message: 'Expense tracked in MongoDB safely.' });
 
   } catch (err) {
@@ -241,6 +266,16 @@ app.get('/api/expenses', authenticateToken, async (req, res) => {
     res.json(records);
   } catch (err) {
     res.status(500).json({ message: 'Failed to extract expense tracking data arrays.' });
+  }
+});
+
+// I. GET RECENT ACTIVITY FEED
+app.get('/api/activities', authenticateToken, async (req, res) => {
+  try {
+    const records = await Activity.find({ userId: req.user.userId }).sort({ timestamp: -1 }).limit(20);
+    res.json(records);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch activity feed.' });
   }
 });
 
