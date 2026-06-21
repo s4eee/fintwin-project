@@ -15,7 +15,7 @@ Traditional finance apps are passive; they only record what has already happened
 * **Personalized Profile:** Track your expenses and manage your digital identity with custom profile photo uploads.
 
 ## 4. Tech Stack
-* **Frontend:**HTML5, CSS3, JavaScript
+* **Frontend:** HTML5, CSS3, JavaScript
 * **Backend:** Node.js, Express.js
 * **Database:** MongoDB (via MongoDB Atlas)
 * **Deployment:** Render
