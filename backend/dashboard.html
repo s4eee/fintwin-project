@@ -10,13 +10,14 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --bg: #0D1B2A; --bg-dark: #080F18; --card: #111F2E; --border: #1E3A50;
-      --teal: #00C49A; --white: #FFFFFF; --muted: #7A9DB5; --light: #A0C4D8; --danger: #FF6B6B;
+      --teal: #00C49A; --teal-dim: rgba(0,196,154,0.12); --white: #FFFFFF;
+      --muted: #7A9DB5; --light: #A0C4D8; --danger: #FF6B6B;
     }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--white); }
     .logo { font-family: 'Space Grotesk', sans-serif; font-size: 24px; color: var(--teal); }
 
     .dashboard-container { padding: 40px; max-width: 1000px; margin: auto; }
-    .grid-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+    .grid-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; align-items: start; }
     .card { background: var(--card); padding: 20px; border-radius: 12px; border: 0.5px solid var(--border); }
     .card h3 { font-size: 14px; color: var(--teal); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 14px; }
     .card p { font-size: 14px; color: var(--light); margin-bottom: 8px; }
@@ -28,10 +29,71 @@
       font-family: 'Inter', sans-serif;
     }
     .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
     .nav-links a { color: var(--light); text-decoration: none; font-size: 14px; margin-left: 16px; }
     .nav-links a:hover { color: var(--teal); }
 
-    @media (max-width: 768px) { .grid-layout { grid-template-columns: 1fr; } }
+    /* Simulator form */
+    .sim-form-row { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .sim-field label {
+      display: block; font-size: 11px; font-weight: 500; color: var(--muted);
+      margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .sim-field input, .sim-field select {
+      width: 100%; background: var(--bg-dark); border: 0.5px solid var(--border);
+      border-radius: 8px; padding: 10px 12px; font-size: 13px; color: var(--white);
+      font-family: 'Inter', sans-serif; outline: none;
+    }
+    .sim-field input:focus, .sim-field select:focus { border-color: var(--teal); }
+
+    .tenure-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tenure-btn {
+      flex: 1; background: var(--bg-dark); border: 0.5px solid var(--border);
+      border-radius: 8px; padding: 8px 0; font-size: 13px; color: var(--light);
+      cursor: pointer; text-align: center; font-weight: 600;
+    }
+    .tenure-btn.active { border-color: var(--teal); background: var(--teal-dim); color: var(--teal); }
+
+    .sim-error { font-size: 12px; color: var(--danger); margin-bottom: 10px; display: none; }
+
+    /* Results */
+    .sim-results { margin-top: 20px; display: none; }
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+    .compare-box {
+      background: var(--bg-dark); border: 0.5px solid var(--border); border-radius: 10px; padding: 16px;
+    }
+    .compare-box.recommended { border-color: var(--teal); box-shadow: 0 0 0 1px rgba(0,196,154,0.2); }
+    .compare-label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;
+      margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .badge-good { background: rgba(0,196,154,0.15); color: var(--teal); padding: 2px 8px; border-radius: 4px; font-size: 10px; }
+    .compare-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--light); margin-bottom: 8px; }
+    .compare-row span:last-child { color: var(--white); font-weight: 600; }
+    .compare-row.highlight span:last-child { color: var(--teal); }
+    .compare-row.warn span:last-child { color: var(--danger); }
+
+    .verdict-box {
+      background: var(--bg-dark); border: 0.5px solid var(--border); border-radius: 10px;
+      padding: 14px 16px; font-size: 13px; color: var(--light); line-height: 1.6; margin-bottom: 14px;
+    }
+    .verdict-box b { color: var(--white); }
+
+    .sim-actions { display: flex; gap: 10px; }
+    .btn-secondary {
+      background: transparent; border: 0.5px solid var(--border); color: var(--light);
+      border-radius: 8px; padding: 10px 18px; font-size: 13px; cursor: pointer; font-weight: 600;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-secondary:hover { border-color: var(--teal); color: var(--teal); }
+
+    .sim-log-status { font-size: 11px; color: var(--muted); margin-top: 10px; display: none; }
+
+    @media (max-width: 768px) {
+      .grid-layout { grid-template-columns: 1fr; }
+      .compare-grid { grid-template-columns: 1fr; }
+      .sim-form-row { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -51,9 +113,66 @@
         <p>Savings: <span id="savings-val">₹0</span></p>
         <p>Monthly Income: <span id="cashflow-val">₹0</span></p>
     </div>
+
     <div class="card">
         <h3>Strategic Decision Simulator</h3>
-        <p style="color: var(--muted);">Coming soon — simulate a purchase to see its impact on your goals.</p>
+
+        <div class="sim-form-row">
+          <div class="sim-field">
+            <label for="simItem">What are you buying?</label>
+            <input type="text" id="simItem" placeholder="e.g. iPhone 16"/>
+          </div>
+          <div class="sim-field">
+            <label for="simCost">Cost (₹)</label>
+            <input type="number" id="simCost" placeholder="e.g. 80000"/>
+          </div>
+        </div>
+
+        <div class="sim-field" style="margin-bottom: 10px;">
+          <label>EMI Tenure</label>
+          <div class="tenure-row" id="tenureRow">
+            <div class="tenure-btn" data-months="3">3 mo</div>
+            <div class="tenure-btn active" data-months="6">6 mo</div>
+            <div class="tenure-btn" data-months="9">9 mo</div>
+            <div class="tenure-btn" data-months="12">12 mo</div>
+          </div>
+        </div>
+
+        <div class="sim-error" id="simError"></div>
+
+        <button class="btn-primary" id="simRunBtn" onclick="runSimulation()" style="width: 100%;">Run Simulation →</button>
+
+        <div class="sim-results" id="simResults">
+          <div class="compare-grid">
+            <div class="compare-box" id="cashBox">
+              <div class="compare-label">
+                Pay with Cash <span id="cashBadge"></span>
+              </div>
+              <div class="compare-row"><span>Savings used</span><span id="cashSavingsUsed">—</span></div>
+              <div class="compare-row warn"><span>Savings remaining after</span><span id="cashSavingsAfter">—</span></div>
+              <div class="compare-row"><span>Interest paid</span><span id="cashInterest">₹0</span></div>
+              <div class="compare-row"><span>Total cost</span><span id="cashTotal">—</span></div>
+            </div>
+
+            <div class="compare-box" id="emiBox">
+              <div class="compare-label">
+                Pay with EMI <span id="emiBadge"></span>
+              </div>
+              <div class="compare-row"><span>Monthly EMI</span><span id="emiMonthly">—</span></div>
+              <div class="compare-row"><span>Tenure</span><span id="emiTenureDisplay">—</span></div>
+              <div class="compare-row warn"><span>Interest paid</span><span id="emiInterest">—</span></div>
+              <div class="compare-row highlight"><span>Total cost</span><span id="emiTotal">—</span></div>
+            </div>
+          </div>
+
+          <div class="verdict-box" id="verdictBox"></div>
+
+          <div class="sim-actions">
+            <button class="btn-secondary" onclick="logDecision('Cash')">Log as Cash purchase</button>
+            <button class="btn-secondary" onclick="logDecision('EMI')">Log as EMI purchase</button>
+          </div>
+          <div class="sim-log-status" id="simLogStatus"></div>
+        </div>
     </div>
   </div>
 </div>
@@ -62,10 +181,18 @@
   const API_BASE = 'http://127.0.0.1:5000/api';
   const token = localStorage.getItem('fintwin_token');
 
+  // Assumed annual EMI interest rate for consumer purchases (typical Indian retail EMI range)
+  const EMI_ANNUAL_RATE = 0.13;
+
   // 1. AUTHENTICATION CHECK
   if (!token || token === 'undefined') {
     window.location.href = 'index.html';
   }
+
+  let currentSavings = 0;
+  let currentIncome = 0;
+  let selectedTenure = 6;
+  let lastSimulation = null;
 
   // 2. FETCH DATA FROM SERVER
   async function loadDashboardData() {
@@ -75,16 +202,17 @@
       });
 
       if (response.status === 401 || response.status === 403) {
-        // Token missing or expired — send back to login instead of failing silently
         localStorage.removeItem('fintwin_token');
         window.location.href = 'index.html';
         return;
       }
 
       const data = await response.json();
+      currentSavings = Number(data.savings || 0);
+      currentIncome = Number(data.income || 0);
 
-      document.getElementById('savings-val').textContent = `₹${Number(data.savings || 0).toLocaleString('en-IN')}`;
-      document.getElementById('cashflow-val').textContent = `₹${Number(data.income || 0).toLocaleString('en-IN')}`;
+      document.getElementById('savings-val').textContent = `₹${currentSavings.toLocaleString('en-IN')}`;
+      document.getElementById('cashflow-val').textContent = `₹${currentIncome.toLocaleString('en-IN')}`;
     } catch (err) {
       console.error("Failed to load profile:", err);
       alert("Network error: Can't reach the backend at port 5000. Make sure 'node server.js' is running.");
@@ -95,6 +223,152 @@
   function logout() {
     localStorage.removeItem('fintwin_token');
     window.location.href = 'index.html';
+  }
+
+  // 4. TENURE SELECTOR
+  document.getElementById('tenureRow').addEventListener('click', (e) => {
+    const btn = e.target.closest('.tenure-btn');
+    if (!btn) return;
+    document.querySelectorAll('.tenure-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedTenure = Number(btn.dataset.months);
+  });
+
+  // 5. EMI MATH — reducing-balance EMI formula
+  // EMI = P * r * (1+r)^n / ((1+r)^n - 1), where r = monthly rate
+  function calculateEMI(principal, annualRate, months) {
+    const r = annualRate / 12;
+    if (r === 0) return principal / months;
+    const factor = Math.pow(1 + r, months);
+    return principal * r * factor / (factor - 1);
+  }
+
+  function formatRupee(n) {
+    return `₹${Math.round(n).toLocaleString('en-IN')}`;
+  }
+
+  // 6. RUN SIMULATION
+  function runSimulation() {
+    const itemInput = document.getElementById('simItem');
+    const costInput = document.getElementById('simCost');
+    const err = document.getElementById('simError');
+
+    const item = itemInput.value.trim();
+    const cost = Number(costInput.value);
+
+    err.style.display = 'none';
+
+    if (!item) {
+      err.textContent = 'Please name what you\'re buying.';
+      err.style.display = 'block';
+      return;
+    }
+    if (!cost || cost <= 0) {
+      err.textContent = 'Please enter a valid cost.';
+      err.style.display = 'block';
+      return;
+    }
+
+    // ── Cash scenario ──
+    const cashSavingsAfter = currentSavings - cost;
+    const cashInterest = 0;
+    const cashTotal = cost;
+
+    // ── EMI scenario ──
+    const monthlyEMI = calculateEMI(cost, EMI_ANNUAL_RATE, selectedTenure);
+    const emiTotal = monthlyEMI * selectedTenure;
+    const emiInterest = emiTotal - cost;
+    const emiAffordabilityRatio = currentIncome > 0 ? (monthlyEMI / currentIncome) : 1;
+
+    // Render Cash box
+    document.getElementById('cashSavingsUsed').textContent = formatRupee(cost);
+    document.getElementById('cashSavingsAfter').textContent = formatRupee(cashSavingsAfter);
+    document.getElementById('cashInterest').textContent = formatRupee(cashInterest);
+    document.getElementById('cashTotal').textContent = formatRupee(cashTotal);
+
+    // Render EMI box
+    document.getElementById('emiMonthly').textContent = formatRupee(monthlyEMI);
+    document.getElementById('emiTenureDisplay').textContent = `${selectedTenure} months`;
+    document.getElementById('emiInterest').textContent = formatRupee(emiInterest);
+    document.getElementById('emiTotal').textContent = formatRupee(emiTotal);
+
+    // ── Verdict logic ──
+    const cashBox = document.getElementById('cashBox');
+    const emiBox = document.getElementById('emiBox');
+    const cashBadge = document.getElementById('cashBadge');
+    const emiBadge = document.getElementById('emiBadge');
+    cashBox.classList.remove('recommended');
+    emiBox.classList.remove('recommended');
+    cashBadge.innerHTML = '';
+    emiBadge.innerHTML = '';
+
+    let verdict = '';
+
+    if (cashSavingsAfter < 0) {
+      // Can't actually afford it in cash at all
+      emiBox.classList.add('recommended');
+      emiBadge.innerHTML = '<span class="badge-good">Recommended</span>';
+      verdict = `Paying in cash would put your savings <b>${formatRupee(Math.abs(cashSavingsAfter))} into the negative</b> — you don't currently have enough saved. EMI is the only realistic option here, and at ${selectedTenure} months it costs <b>${formatRupee(emiInterest)}</b> in interest.`;
+    } else if (emiAffordabilityRatio > 0.4) {
+      // EMI eats too much of monthly income
+      cashBox.classList.add('recommended');
+      cashBadge.innerHTML = '<span class="badge-good">Recommended</span>';
+      verdict = `The EMI option would consume <b>${Math.round(emiAffordabilityRatio * 100)}% of your monthly income</b> — that's a heavy load. If your savings can absorb it, paying cash avoids <b>${formatRupee(emiInterest)}</b> in interest and keeps your monthly cash flow free.`;
+    } else if (cashSavingsAfter < currentSavings * 0.2) {
+      // Cash would wipe out most of the safety buffer
+      emiBox.classList.add('recommended');
+      emiBadge.innerHTML = '<span class="badge-good">Recommended</span>';
+      verdict = `Paying in cash would leave you with only <b>${formatRupee(cashSavingsAfter)}</b> in savings — a thin safety buffer. Spreading it over ${selectedTenure} months costs <b>${formatRupee(emiInterest)}</b> extra, but keeps your emergency fund intact.`;
+    } else {
+      // Comfortable cash position, EMI interest is pure cost with no real benefit
+      cashBox.classList.add('recommended');
+      cashBadge.innerHTML = '<span class="badge-good">Recommended</span>';
+      verdict = `Your savings can comfortably absorb this purchase, leaving <b>${formatRupee(cashSavingsAfter)}</b> remaining. Paying cash saves you <b>${formatRupee(emiInterest)}</b> in interest compared to the ${selectedTenure}-month EMI.`;
+    }
+
+    document.getElementById('verdictBox').innerHTML = verdict;
+    document.getElementById('simResults').style.display = 'block';
+    document.getElementById('simLogStatus').style.display = 'none';
+
+    lastSimulation = { item, cost, monthlyEMI, selectedTenure };
+  }
+
+  // 7. LOG A DECISION TO THE BACKEND
+  async function logDecision(type) {
+    if (!lastSimulation) return;
+    const statusText = document.getElementById('simLogStatus');
+
+    const payload = {
+      item: lastSimulation.item,
+      cost: lastSimulation.cost,
+      type: type,
+      monthlyCommitment: type === 'EMI' ? Math.round(lastSimulation.monthlyEMI) : 0,
+      status: 'simulated'
+    };
+
+    try {
+      const response = await fetch(`${API_BASE}/simulations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('fintwin_token');
+        window.location.href = 'index.html';
+        return;
+      }
+
+      const data = await response.json();
+      statusText.textContent = response.ok
+        ? `Logged as a ${type} decision.`
+        : (data.message || 'Could not log this decision.');
+      statusText.style.display = 'block';
+    } catch (err) {
+      console.error('Failed to log simulation:', err);
+      statusText.textContent = "Network error: Can't reach the backend.";
+      statusText.style.display = 'block';
+    }
   }
 
   // Initialize
