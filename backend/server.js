@@ -290,9 +290,9 @@ app.get('/api/expenses', authenticateToken, async (req, res) => {
 });
 
 /* ─── 4. SPIN UP EXPRESS RUNTIME ─── */
-const PORT = 5000;
-const HOST = '127.0.0.1'; // Explicitly bind to IPv4
+/* ─── 4. SPIN UP EXPRESS RUNTIME ─── */
+const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, HOST, () => {
-  console.log(`🚀 Server running at http://${HOST}:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
