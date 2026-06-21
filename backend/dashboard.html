@@ -79,6 +79,24 @@
     }
     .verdict-box b { color: var(--white); }
 
+    .market-box {
+      background: var(--bg-dark); border: 0.5px solid var(--border); border-radius: 10px;
+      padding: 14px 16px; margin-bottom: 14px;
+    }
+    .market-label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;
+      color: var(--muted); margin-bottom: 10px;
+    }
+    .market-links { display: flex; flex-wrap: wrap; gap: 8px; }
+    .market-link-btn {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--card); border: 0.5px solid var(--border); border-radius: 8px;
+      padding: 8px 14px; font-size: 13px; color: var(--white); text-decoration: none;
+      font-weight: 600; transition: border-color 0.2s, background 0.2s;
+    }
+    .market-link-btn:hover { border-color: var(--teal); background: var(--teal-dim); }
+    .market-link-btn .market-icon { font-size: 14px; }
+
     .sim-actions { display: flex; gap: 10px; }
     .btn-secondary {
       background: transparent; border: 0.5px solid var(--border); color: var(--light);
@@ -167,6 +185,11 @@
 
           <div class="verdict-box" id="verdictBox"></div>
 
+          <div class="market-box" id="marketBox" style="display:none;">
+            <div class="market-label">Compare prices before you decide</div>
+            <div class="market-links" id="marketLinks"></div>
+          </div>
+
           <div class="sim-actions">
             <button class="btn-secondary" onclick="logDecision('Cash')">Log as Cash purchase</button>
             <button class="btn-secondary" onclick="logDecision('EMI')">Log as EMI purchase</button>
@@ -245,6 +268,32 @@
 
   function formatRupee(n) {
     return `₹${Math.round(n).toLocaleString('en-IN')}`;
+  }
+
+  // Builds direct search-result links — no API key needed, just query-encoded search URLs.
+  // Price filters are added where the marketplace supports it via URL params.
+  function buildMarketplaceLinks(item, cost) {
+    const q = encodeURIComponent(item);
+    const lowPrice = Math.round(cost * 0.7);
+    const highPrice = Math.round(cost * 1.3);
+
+    return [
+      {
+        name: 'Amazon.in',
+        icon: '🛒',
+        url: `https://www.amazon.in/s?k=${q}&low-price=${lowPrice}&high-price=${highPrice}`
+      },
+      {
+        name: 'Flipkart',
+        icon: '🛍️',
+        url: `https://www.flipkart.com/search?q=${q}`
+      },
+      {
+        name: 'Google Shopping',
+        icon: '🔎',
+        url: `https://www.google.com/search?q=${q}&tbm=shop`
+      }
+    ];
   }
 
   // 6. RUN SIMULATION
@@ -330,6 +379,17 @@
     document.getElementById('simResults').style.display = 'block';
     document.getElementById('simLogStatus').style.display = 'none';
 
+    // Render marketplace comparison links for this item
+    const marketBox = document.getElementById('marketBox');
+    const marketLinks = document.getElementById('marketLinks');
+    const links = buildMarketplaceLinks(item, cost);
+    marketLinks.innerHTML = links.map(l =>
+      `<a href="${l.url}" target="_blank" rel="noopener noreferrer" class="market-link-btn">
+         <span class="market-icon">${l.icon}</span> ${l.name}
+       </a>`
+    ).join('');
+    marketBox.style.display = 'block';
+
     lastSimulation = { item, cost, monthlyEMI, selectedTenure };
   }
 
@@ -373,6 +433,14 @@
 
   // Initialize
   loadDashboardData();
+
+  // Force a fresh fetch if the user navigates back/forward to this page from cache
+  // (e.g. after updating income/savings on profile.html and hitting the browser back button)
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+      loadDashboardData();
+    }
+  });
 </script>
 
 </body>
